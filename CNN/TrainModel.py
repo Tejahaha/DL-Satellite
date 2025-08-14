@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-def train(model, train_loader, optimizer, criterion, device, epochs=10):
+def train(model, train_loader, optimizer, criterion, device, epochs=15):
     model.train()
     for epoch in range(epochs):
         running_loss = 0.0
