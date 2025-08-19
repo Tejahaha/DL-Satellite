@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from CNN.EvaluateModel import evaluate
 
 def train(model, train_loader, val_loader, optimizer, criterion, device, epochs=10):
     for epoch in range(epochs):

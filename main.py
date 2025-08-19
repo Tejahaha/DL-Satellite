@@ -4,9 +4,10 @@ import torch.nn as nn
 from CNN import preprocess as pre
 from CNN.EvaluateModel import evaluate
 from CNN.TrainModel import train
-from CNN.model import get_model
+from CNN.model import get_model , get_optimizer
 from CNN.visualize import visualize_data
 import os
+from CNN.ResultsPlot import plot_optim_results
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
@@ -34,16 +35,23 @@ def main():
 
     task_type = "binary" if len(classes) == 2 else "multi"
     num_classes = len(classes) if task_type == "multi" else None
-    model = get_model(task_type, num_classes=num_classes).to(device)
 
     criterion = nn.BCELoss() if task_type == "binary" else nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    results = {}
 
-    print(f"\nTraining Model...")
-    train(model, train_loader, val_loader, optimizer, criterion, device, epochs=10)
+    for opt_name in ["SGD", "Adam", "RMSprop"]:
+        print(f"\n-----> Training with {opt_name} Optimizer <-----")
+        model = get_model(task_type, num_classes=num_classes).to(device)
+        optimizer = get_optimizer(opt_name, model, lr=0.001)
 
-    print(f"\nEvaluating on Validation set...")
-    evaluate(model, val_loader, criterion, device)
+        train(model, train_loader, val_loader, optimizer, criterion, device, epochs=5)
+        val_loss, val_acc = evaluate(model, val_loader, criterion, device)
+        results[opt_name] = {"accuracy": val_acc, "loss": val_loss}
+    plot_optim_results(results)
+
+    print("\n---- Final Results ----")
+    for opt_name, metrics in results.items():
+        print(f"{opt_name}: Accuracy={metrics['accuracy']:.2f}%, Loss={metrics['loss']:.4f}")
 
 
 if __name__ == "__main__":
