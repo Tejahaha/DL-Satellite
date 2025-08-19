@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.optim as optim
 
 class BinaryClassifier(nn.Module):
     def __init__(self):
@@ -44,3 +45,13 @@ def get_model(task_type, num_classes=None):
         return MultiClassifier(num_classes)
     else:
         raise ValueError("Invalid task_type. Choose 'binary' or 'multi'.")
+
+def get_optimizer(optimizer_name,model,lr=0.001):
+    if optimizer_name == "SGD":
+        return optim.SGD(model.parameters(), lr=lr,momentum=0.9)
+    elif optimizer_name == "Adam":
+        return optim.Adam(model.parameters(), lr=lr)
+    elif optimizer_name == "RMSprop":
+        return optim.RMSprop(model.parameters(), lr=lr)
+    else:
+        raise ValueError("Invlid optimizer name ")

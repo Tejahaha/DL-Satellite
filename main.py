@@ -6,7 +6,9 @@ from CNN.EvaluateModel import evaluate
 from CNN.TrainModel import train
 from CNN.model import get_model
 from CNN.visualize import visualize_data
+import os
 
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 
 def main():
@@ -38,7 +40,7 @@ def main():
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     print(f"\nTraining Model...")
-    train(model, train_loader, optimizer, criterion, device, epochs=10)
+    train(model, train_loader, val_loader, optimizer, criterion, device, epochs=10)
 
     print(f"\nEvaluating on Validation set...")
     evaluate(model, val_loader, criterion, device)
