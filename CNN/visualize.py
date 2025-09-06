@@ -18,3 +18,25 @@ def visualize_data(train_loader, classes, num_samples=5):
         #axes[i].set_title(f"Label: {labels[i]}")
         axes[i].set_title(f"Label: {classes[labels[i].item()]}")
     plt.show()
+
+
+def visualize_layerOutputs(model , input_img , layers_to_visualize=None , max_Features=16):
+    model.eval()
+    x = input_img.to(next(model.parameters()).device)
+
+    if layers_to_visualize == None:
+        layers_to_visualize=[0,3,6]
+
+    with torch.no_grad():
+        for idx,layers in enumerate(model.conv_layers):
+            x = layers(x)
+            if idx in layers_to_visualize:
+                num_features = min(x.shape[1], max_Features)
+                plt.figure(figsize=(12,6))
+                for i in range(num_features):
+                    plt.subplot(4,4,i+1)
+                    plt.imshow(x[0, i].detach().cpu().numpy(), cmap='viridis')
+                    plt.axis('off')
+                plt.suptitle(f'layer {idx} feature maps')
+                plt.show()
+
