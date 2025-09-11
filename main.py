@@ -1,11 +1,15 @@
 import torch
-import torch.optim as optim
 import torch.nn as nn
 from CNN import preprocess as pre
-from CNN.EvaluateModel import evaluate
+from CNN.EvaluateModel import evaluate, eval_Random_MiniBatch
 from CNN.TrainModel import train
-from CNN.model import get_model , get_optimizer
-from CNN.visualize import visualize_data , visualize_layerOutputs
+from CNN.model import get_model, get_optimizer
+from CNN.visualize import (
+    visualize_data,
+    visualize_layerOutputs,
+    show_gradcam,
+    show_misclassified
+)
 import os
 from CNN.ResultsPlot import plot_optim_results
 
@@ -16,7 +20,7 @@ def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     path_to_data = "Satellite Data"
-    train_loader, val_loader, classes = pre.load_data(data_dir=path_to_data, batch_size=32)
+    train_loader, val_loader, classes = pre.load_data(data_dir=path_to_data, batch_size=32 , augment=True)
 
     print(f"Number of classes: {len(classes)}")
     print(f"Class names: {classes}")
@@ -27,42 +31,51 @@ def main():
     print(f"Training samples: {train_size}")
     print(f"Validation samples: {val_size}")
 
-    print("\nDisplaying Sample Images from dataset....")
-    visualize_data(train_loader, classes)
+    # --- Step 1: Show dataset sanity check with predictions ---
+    print("\nDisplaying Sample Images from dataset (with predictions if model available)...")
+    visualize_data(train_loader, classes)  # initially no model, just labels
 
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
 
-    task_type = "binary" if len(classes) == 2 else "multi"
-    num_classes = len(classes) if task_type == "multi" else None
-
-    criterion = nn.BCELoss() if task_type == "binary" else nn.CrossEntropyLoss()
+    # --- Step 2: Training ---
+    criterion = nn.CrossEntropyLoss()
     results = {}
 
-    use_cnn = True
+    opt_name = "RMSprop"
+    print(f"\n-----> Training with {opt_name} Optimizer <-----")
+    model = get_model(num_classes=len(classes)).to(device)
+    optimizer = get_optimizer(opt_name, model, lr=0.001)
 
+    train(model, train_loader, val_loader, optimizer, criterion, device, epochs=30)
+    val_loss, val_acc = evaluate( model, val_loader, criterion, device)
+    # val_loss, val_acc = eval_Random_MiniBatch(model, val_loader, criterion, device)
+    results[opt_name] = {"accuracy": val_acc, "loss": val_loss}
 
-    for opt_name in ["SGD", "Adam", "RMSprop"]:
-        print(f"\n-----> Training with {opt_name} Optimizer <-----")
-        model = get_model(task_type,
-                          num_classes=num_classes if task_type == "multi" else None,
-                          use_cnn=use_cnn,
-                          ).to(device)
-        optimizer = get_optimizer(opt_name, model, lr=0.001)
-
-        train(model, train_loader, val_loader, optimizer, criterion, device, epochs=5)
-        val_loss, val_acc = evaluate(model, val_loader, criterion, device)
-        results[opt_name] = {"accuracy": val_acc, "loss": val_loss}
     plot_optim_results(results)
 
     print("\n---- Final Results ----")
     for opt_name, metrics in results.items():
         print(f"{opt_name}: Accuracy={metrics['accuracy']:.2f}%, Loss={metrics['loss']:.4f}")
 
-    print("visualizing cnn layers op")
-    sample_img , _ = next(iter(val_loader))
+    # --- Step 3: Visualization after training ---
+    print("\nVisualizing CNN internals...")
+
+    # Take one sample from validation set
+    sample_img, _ = next(iter(val_loader))
     sample_img = sample_img[0].unsqueeze(0).to(device)  # keep batch dimension
-    visualize_layerOutputs(model , sample_img)
+
+    # a) Feature maps
+    visualize_layerOutputs(model, sample_img)
+
+    # b) Grad-CAM heatmap (where CNN focused)
+    show_gradcam(model, sample_img, classes, device=device)
+
+    # c) Misclassified examples
+    show_misclassified(model, val_loader, classes, device=device, num_samples=5)
+
+    # d) Predictions on dataset samples
+    visualize_data(val_loader, classes, model=model, device=device)
+
 
 if __name__ == "__main__":
     main()
