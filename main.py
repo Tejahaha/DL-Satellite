@@ -46,7 +46,7 @@ def main():
     model = get_model(num_classes=len(classes)).to(device)
     optimizer = get_optimizer(opt_name, model, lr=0.001)
 
-    train(model, train_loader, val_loader, optimizer, criterion, device, epochs=30)
+    train(model, train_loader, val_loader, optimizer, criterion, device, epochs=10)
     val_loss, val_acc = evaluate( model, val_loader, criterion, device)
     # val_loss, val_acc = eval_Random_MiniBatch(model, val_loader, criterion, device)
     results[opt_name] = {"accuracy": val_acc, "loss": val_loss}

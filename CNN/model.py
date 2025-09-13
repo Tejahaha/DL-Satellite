@@ -1,43 +1,62 @@
+import torch
 import torch.nn as nn
-import torch.optim as optim
 
 class CNNClassifier(nn.Module):
-    def __init__(self, num_classes: int):
-        super().__init__()
-        self.conv_layers = nn.Sequential(
-            nn.Conv2d(3, 16, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),
+    def __init__(self, num_classes=4):
+        super(CNNClassifier, self).__init__()
 
-            nn.Conv2d(16, 32, kernel_size=3, padding=1),
+        # Convolutional layers (with batchnorms)
+        self.conv_layers = nn.Sequential(
+            nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1),  # conv 0
+            nn.BatchNorm2d(16),                                    # conv 1
             nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.MaxPool2d(2, 2),                                    # conv 3
+
+            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1), # conv 4
+            nn.BatchNorm2d(32),                                    # conv 5
             nn.ReLU(),
-            nn.MaxPool2d(2, 2),
+            nn.MaxPool2d(2, 2),                                    # conv 7
+
+            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1), # conv 8
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(2, 2)
         )
 
+        # Fully connected layers
         self.fc_layers = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(64 * 32 * 32, 256),  # 128x128 input → 32x32 after pooling
+            nn.Linear(64 * 16 * 16, 512),  # fc 0
             nn.ReLU(),
-            nn.Linear(256, num_classes),
+            nn.Dropout(0.5),
+            nn.Linear(512, 256),           # fc 1
+            nn.ReLU(),
+            nn.Dropout(0.5),
+            nn.Linear(256, 128),           # fc 2
+            nn.ReLU(),
+            nn.Linear(128, 64),            # fc 3
+            nn.ReLU(),
+            nn.Linear(64, num_classes)     # fc 4
         )
 
     def forward(self, x):
         x = self.conv_layers(x)
-        return self.fc_layers(x)
+        x = x.view(x.size(0), -1)  # flatten
+        x = self.fc_layers(x)
+        return x
 
 
-def get_model(num_classes: int) -> nn.Module:
-    """Always return a CNN classifier."""
-    return CNNClassifier(num_classes)
+# Factory method
+def get_model(num_classes=4):
+    return CNNClassifier(num_classes=num_classes)
 
 
-def get_optimizer(optimizer_name: str, model: nn.Module, lr: float = 0.001):
-    if optimizer_name == "SGD":
-        return optim.SGD(model.parameters(), lr=lr, momentum=0.9)
-    if optimizer_name == "Adam":
-        return optim.Adam(model.parameters(), lr=lr)
-    if optimizer_name == "RMSprop":
-        return optim.RMSprop(model.parameters(), lr=lr)
-    raise ValueError("Invalid optimizer name. Choose 'SGD', 'Adam', or 'RMSprop'.")
+# Optimizer getter
+def get_optimizer(opt_name, model, lr=0.001):
+    if opt_name == "SGD":
+        return torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9)
+    elif opt_name == "Adam":
+        return torch.optim.Adam(model.parameters(), lr=lr)
+    elif opt_name == "RMSprop":
+        return torch.optim.RMSprop(model.parameters(), lr=lr)
+    else:
+        raise ValueError(f"Unknown optimizer: {opt_name}")

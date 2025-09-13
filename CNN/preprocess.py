@@ -4,21 +4,6 @@ from torch.utils.data import DataLoader
 
 
 def load_data(data_dir, batch_size=32, augment=False):
-    """
-    Loads and preprocesses satellite image dataset for training and validation.
-
-    Args:
-        data_dir (str): Path to the dataset root folder. The folder must have subfolders,
-                        one per class (e.g. 'cloudy/', 'desert/', 'green_area/', 'water/').
-        batch_size (int, optional): Number of samples per batch. Default = 32.
-        augment (bool, optional): If True, apply data augmentation for training set
-                                  (random flips, rotations, color jitter, etc.).
-
-    Returns:
-        train_loader (DataLoader): Dataloader for training data.
-        val_loader (DataLoader): Dataloader for validation data.
-        classes (list): List of class names (from subfolder names).
-    """
 
     # ---------- Base Transform ----------
     base_transform = transforms.Compose([
