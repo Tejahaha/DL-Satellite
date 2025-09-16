@@ -1,47 +1,62 @@
 import torch
-from torchvision import transforms, datasets
-from torch.utils.data import DataLoader
+from torchvision import datasets, transforms
+from torch.utils.data import DataLoader, Subset
+from sklearn.model_selection import train_test_split
+import numpy as np
 
+def load_data(data_dir, batch_size=32, augment=True, val_split=0.2, seed=42):
+    """
+    Load dataset with stratified train/val split (same class distribution in both).
+    """
 
-def load_data(data_dir, batch_size=32, augment=False):
-
-    # ---------- Base Transform ----------
-    base_transform = transforms.Compose([
-        transforms.Resize((128, 128)),  # resize all images to 128x128
+    # -------------------
+    # Transforms
+    # -------------------
+    train_transforms = transforms.Compose([
+        transforms.Resize((128, 128)),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation(20),
+        transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
         transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5],
+                             std=[0.5, 0.5, 0.5])
+    ]) if augment else transforms.Compose([
+        transforms.Resize((128, 128)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5],
+                             std=[0.5, 0.5, 0.5])
     ])
 
-    # ---------- Augmentation Transform ----------
-    if augment:
-        train_transform = transforms.Compose([
-            transforms.Resize((128, 128)),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomRotation(15),
-            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.5, 0.5, 0.5],
-                                 std=[0.5, 0.5, 0.5])
-        ])
-    else:
-        train_transform = base_transform
+    val_transforms = transforms.Compose([
+        transforms.Resize((128, 128)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5, 0.5, 0.5],
+                             std=[0.5, 0.5, 0.5])
+    ])
 
-    # ---------- Load Dataset ----------
-    # Note: torchvision expects structure like:
-    # data_dir/
-    #    cloudy/
-    #    desert/
-    #    green_area/
-    #  water/
-    dataset = datasets.ImageFolder(root=data_dir, transform=base_transform)
-    train_dataset = datasets.ImageFolder(root=data_dir, transform=train_transform)
+    # -------------------
+    # Load whole dataset
+    # -------------------
+    full_dataset = datasets.ImageFolder(root=data_dir, transform=train_transforms)
+    targets = np.array(full_dataset.targets)
 
-    # ---------- Split into Train / Val ----------
-    train_size = int(0.8 * len(dataset))  # 80% for training
-    val_size = len(dataset) - train_size
-    train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [train_size, val_size])
+    # Stratified split
+    train_idx, val_idx = train_test_split(
+        np.arange(len(full_dataset)),
+        test_size=val_split,
+        random_state=seed,
+        stratify=targets
+    )
 
-    # ---------- Data Loaders ----------
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    # Apply different transforms for val
+    train_dataset = Subset(full_dataset, train_idx)
+    val_dataset = Subset(datasets.ImageFolder(root=data_dir, transform=val_transforms), val_idx)
 
-    return train_loader, val_loader, dataset.classes
+    # DataLoaders
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=2)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=2)
+
+    # Class names
+    classes = full_dataset.classes
+
+    return train_loader, val_loader, classes

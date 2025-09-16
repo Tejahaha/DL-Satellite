@@ -10,9 +10,10 @@ from CNN.visualize import (
     show_gradcam,
     show_misclassified
 )
-import os
 from CNN.ResultsPlot import plot_optim_results
+from CNN.metrics import evaluate_metrics   # <-- NEW
 
+import os
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 
@@ -41,14 +42,18 @@ def main():
     criterion = nn.CrossEntropyLoss()
     results = {}
 
-    opt_name = "RMSprop"
+    opt_name = "AdamW"
     print(f"\n-----> Training with {opt_name} Optimizer <-----")
-    model = get_model(num_classes=len(classes)).to(device)
+    model = get_model("resnet18", num_classes=len(classes), pretrained=True, fine_tune=True).to(device)
     optimizer = get_optimizer(opt_name, model, lr=0.001)
 
-    train(model, train_loader, val_loader, optimizer, criterion, device, epochs=10)
-    val_loss, val_acc = evaluate( model, val_loader, criterion, device)
-    # val_loss, val_acc = eval_Random_MiniBatch(model, val_loader, criterion, device)
+    history = train(
+        model, train_loader, val_loader, optimizer, criterion, device,
+        epochs=50,
+        scheduler_type="plateau",  # or "cosine"
+        early_stopping_patience=7  # stop if no improvement for 7 epochs
+    )
+    val_loss, val_acc = evaluate(model, val_loader, criterion, device)
     results[opt_name] = {"accuracy": val_acc, "loss": val_loss}
 
     plot_optim_results(results)
@@ -57,7 +62,11 @@ def main():
     for opt_name, metrics in results.items():
         print(f"{opt_name}: Accuracy={metrics['accuracy']:.2f}%, Loss={metrics['loss']:.4f}")
 
-    # --- Step 3: Visualization after training ---
+    # --- Step 3: Advanced Metrics ---
+    print("\nComputing advanced evaluation metrics...")
+    evaluate_metrics(model, val_loader, classes, device=device)
+
+    # --- Step 4: Visualization after training ---
     print("\nVisualizing CNN internals...")
 
     # Take one sample from validation set

@@ -2,6 +2,7 @@ import torch
 import matplotlib.pyplot as plt
 import numpy as np
 import torch.nn.functional as F
+import torch.nn as nn
 
 # ------------------------------
 # 1. Show sample images with predictions
@@ -42,11 +43,27 @@ def visualize_layerOutputs(model, input_img, layers_to_visualize=None, max_featu
     model.eval()
     x = input_img.to(next(model.parameters()).device)
 
+    # Handle custom CNN (has .conv_layers) vs ResNet
+    if hasattr(model, "conv_layers"):
+        layers = model.conv_layers
+    else:
+        # For ResNet: use its main conv + residual blocks
+        layers = nn.Sequential(
+            model.conv1,
+            model.bn1,
+            model.relu,
+            model.maxpool,
+            model.layer1,
+            model.layer2,
+            model.layer3,
+            model.layer4
+        )
+
     if layers_to_visualize is None:
-        layers_to_visualize = [0, 3, 6]  # default layers
+        layers_to_visualize = [0, 3, 6]  # default indexes
 
     with torch.no_grad():
-        for idx, layer in enumerate(model.conv_layers):
+        for idx, layer in enumerate(layers):
             x = layer(x)
             if idx in layers_to_visualize:
                 num_features = min(x.shape[1], max_features)
@@ -55,9 +72,8 @@ def visualize_layerOutputs(model, input_img, layers_to_visualize=None, max_featu
                     plt.subplot(4, 4, i + 1)
                     plt.imshow(x[0, i].detach().cpu().numpy(), cmap='viridis')
                     plt.axis('off')
-                plt.suptitle(f"Feature Maps - Conv Layer {idx}")
+                plt.suptitle(f"Feature Maps - Layer {idx}")
                 plt.show()
-
 
 # ------------------------------
 # 3. Grad-CAM style heatmap
@@ -78,7 +94,12 @@ def gradcam_heatmap(model, input_img, target_class, device="cpu"):
         activations.append(output)
 
     # Register hooks on the last conv layer
-    target_layer = model.conv_layers[-1]
+    if hasattr(model, "conv_layers"):  # your old custom CNN
+        target_layer = model.conv_layers[-1]
+    elif hasattr(model, "layer4"):  # ResNet / pretrained
+        target_layer = model.layer4[-1]
+    else:
+        raise ValueError("Unsupported model architecture for Grad-CAM")
     forward_handle = target_layer.register_forward_hook(forward_hook)
     backward_handle = target_layer.register_backward_hook(backward_hook)
 
