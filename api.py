@@ -1,11 +1,12 @@
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware   # ✅ added
 from torchvision import transforms
 from PIL import Image
 import io
+from typing import List
+
 
 from CNN.model import get_model  # make sure this points to your CNN model file
 
@@ -90,3 +91,34 @@ async def predict(file: UploadFile = File(...)):
             classes[i]: f"{float(p) * 100:.2f}%" for i, p in enumerate(probs)
         }
     }
+
+@app.post("/predict-batch")
+async def predict_batch(files: List[UploadFile] = File(...)):
+    """
+    Upload multiple images (jpg, png, etc.) and get predictions for each.
+    """
+    results = []
+
+    for file in files:
+        image_bytes = await file.read()
+        image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        img_tensor = transform(image).unsqueeze(0).to(device)
+
+        with torch.no_grad():
+            outputs = model(img_tensor)
+            probs = F.softmax(outputs, dim=1).cpu().numpy()[0]
+
+        pred_idx = int(torch.argmax(torch.tensor(probs)))
+        pred_label = classes[pred_idx]
+        pred_confidence = float(probs[pred_idx]) * 100
+
+        results.append({
+            "filename": file.filename,
+            "predicted_class": pred_label,
+            "confidence": f"{pred_confidence:.2f}%",
+            "all_probabilities": {
+                classes[i]: f"{float(p) * 100:.2f}%" for i, p in enumerate(probs)
+            }
+        })
+
+    return {"batch_results": results}
