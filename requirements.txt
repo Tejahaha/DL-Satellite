@@ -1,0 +1,10 @@
+fastapi==0.116.1
+matplotlib==3.10.6
+numpy==2.3.3
+Pillow==11.3.0
+scikit_learn==1.7.2
+seaborn==0.13.2
+torch==2.7.1+cpu
+torchvision==0.22.1+cpu
+tqdm==4.67.1
+-f https://download.pytorch.org/whl/torch_stable.html
