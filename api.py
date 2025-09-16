@@ -65,7 +65,15 @@ transform = transforms.Compose([
 
 @app.get("/")
 def read_root():
-    return {"message": "Satellite CNN API is running. Use /predict to classify images."}
+    return {
+        "message": "🚀 Welcome to SpaceEyes – Satellite Image Classification API!",
+        "about": (
+            "This project uses a deep learning Convolutional Neural Network (CNN) "
+            "to analyze satellite images and classify them into meaningful categories. "
+            "It’s built with FastAPI + PyTorch, designed for speed, accuracy, and scalability."
+        ),
+        "vision": "🌍 Turning raw satellite data into insights for research, urban planning, and the future of Earth observation."
+    }
 
 
 @app.post("/predict")
