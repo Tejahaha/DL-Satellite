@@ -1,19 +1,15 @@
-# Core deep learning
-torch
-torchvision
-torchaudio
-
-# Training utilities
-tqdm
-numpy
-scikit-learn
-matplotlib
-pillow
+# PyTorch CPU-only wheels (saves space)
+torch==2.3.0+cpu
+torchvision==0.18.0+cpu
+torchaudio==2.3.0+cpu
+--extra-index-url https://download.pytorch.org/whl/cpu
 
 # API
 fastapi
 uvicorn[standard]
 python-multipart
+gunicorn
 
-# Optional but useful
-seaborn        # (pretty confusion matrix plots)
+# Image processing
+pillow
+numpy
