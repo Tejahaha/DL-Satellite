@@ -24,7 +24,7 @@ app = FastAPI(
 # ---------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],  # frontend URLs
+    allow_origins=["http://localhost:3000", "http://localhost:5173", "https://space-eyes.vercel.app"],  # frontend URLs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
