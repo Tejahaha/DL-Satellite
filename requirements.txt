@@ -1,15 +1,21 @@
-# PyTorch CPU-only wheels (saves space)
-torch==2.3.0+cpu
-torchvision==0.18.0+cpu
-torchaudio==2.3.0+cpu
+# ------------------------
+# PyTorch CPU-only wheels
+# ------------------------
+torch==2.5.1+cpu
+torchvision==0.20.1+cpu
+torchaudio==2.5.1+cpu
 --extra-index-url https://download.pytorch.org/whl/cpu
 
-# API
+# ------------------------
+# API framework
+# ------------------------
 fastapi
 uvicorn[standard]
 python-multipart
 gunicorn
 
+# ------------------------
 # Image processing
+# ------------------------
 pillow
 numpy
