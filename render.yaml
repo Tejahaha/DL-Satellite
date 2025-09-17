@@ -3,7 +3,7 @@ services:
     name: satellite-cnn-api
     env: python
     plan: free
-    region: oregon   # or frankfurt, etc. (choose nearest to your users)
+    region: singapore
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn api:app --host 0.0.0.0 --port 10000
     envVars:
